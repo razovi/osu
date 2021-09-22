@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using osu.Framework.Extensions;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu.Mods;
@@ -36,13 +35,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             mods = Score.Mods;
             accuracy = Score.Accuracy;
             scoreMaxCombo = Score.MaxCombo;
-            countGreat = Score.Statistics.GetOrDefault(HitResult.Great);
-            countOk = Score.Statistics.GetOrDefault(HitResult.Ok);
-            countMeh = Score.Statistics.GetOrDefault(HitResult.Meh);
-            countMiss = Score.Statistics.GetOrDefault(HitResult.Miss);
+            countGreat = Score.Statistics.GetValueOrDefault(HitResult.Great);
+            countOk = Score.Statistics.GetValueOrDefault(HitResult.Ok);
+            countMeh = Score.Statistics.GetValueOrDefault(HitResult.Meh);
+            countMiss = Score.Statistics.GetValueOrDefault(HitResult.Miss);
 
             // Custom multipliers for NoFail and SpunOut.
-            double multiplier = 1.12; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things
+            double multiplier = 1.12; // This is being adjusted to keep the final pp value scaled around what it used to be when changing things.
 
             if (mods.Any(m => m is OsuModNoFail))
                 multiplier *= Math.Max(0.90, 1.0 - 0.02 * countMiss);
@@ -53,11 +52,13 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             double aimValue = computeAimValue();
             double speedValue = computeSpeedValue();
             double accuracyValue = computeAccuracyValue();
+            double flashlightValue = computeFlashlightValue();
             double totalValue =
                 Math.Pow(
                     Math.Pow(aimValue, 1.1) +
                     Math.Pow(speedValue, 1.1) +
-                    Math.Pow(accuracyValue, 1.1), 1.0 / 1.1
+                    Math.Pow(accuracyValue, 1.1) +
+                    Math.Pow(flashlightValue, 1.1), 1.0 / 1.1
                 ) * multiplier;
 
             if (categoryRatings != null)
@@ -65,6 +66,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 categoryRatings.Add("Aim", aimValue);
                 categoryRatings.Add("Speed", speedValue);
                 categoryRatings.Add("Accuracy", accuracyValue);
+                categoryRatings.Add("Flashlight", flashlightValue);
                 categoryRatings.Add("OD", Attributes.OverallDifficulty);
                 categoryRatings.Add("AR", Attributes.ApproachRate);
                 categoryRatings.Add("Max Combo", Attributes.MaxCombo);
@@ -82,7 +84,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
             double aimValue = Math.Pow(5.0 * Math.Max(1.0, rawAim / 0.0675) - 4.0, 3.0) / 100000.0;
 
-            // Longer maps are worth more
+            // Longer maps are worth more.
             double lengthBonus = 0.95 + 0.4 * Math.Min(1.0, totalHits / 2000.0) +
                                  (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
 
@@ -92,35 +94,29 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             if (countMiss > 0)
                 aimValue *= 0.97 * Math.Pow(1 - Math.Pow((double)countMiss / totalHits, 0.775), countMiss);
 
-            // Combo scaling
+            // Combo scaling.
             if (Attributes.MaxCombo > 0)
                 aimValue *= Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(Attributes.MaxCombo, 0.8), 1.0);
 
             double approachRateFactor = 0.0;
             if (Attributes.ApproachRate > 10.33)
-                approachRateFactor += 0.4 * (Attributes.ApproachRate - 10.33);
+                approachRateFactor = Attributes.ApproachRate - 10.33;
             else if (Attributes.ApproachRate < 8.0)
-                approachRateFactor += 0.01 * (8.0 - Attributes.ApproachRate);
+                approachRateFactor = 0.025 * (8.0 - Attributes.ApproachRate);
 
-            aimValue *= 1.0 + Math.Min(approachRateFactor, approachRateFactor * (totalHits / 1000.0));
+            double approachRateTotalHitsFactor = 1.0 / (1.0 + Math.Exp(-(0.007 * (totalHits - 400))));
+
+            double approachRateBonus = 1.0 + (0.03 + 0.37 * approachRateTotalHitsFactor) * approachRateFactor;
 
             // We want to give more reward for lower AR when it comes to aim and HD. This nerfs high AR and buffs lower AR.
             if (mods.Any(h => h is OsuModHidden))
                 aimValue *= 1.0 + 0.04 * (12.0 - Attributes.ApproachRate);
 
-            if (mods.Any(h => h is OsuModFlashlight))
-            {
-                // Apply object-based bonus for flashlight.
-                aimValue *= 1.0 + 0.35 * Math.Min(1.0, totalHits / 200.0) +
-                            (totalHits > 200
-                                ? 0.3 * Math.Min(1.0, (totalHits - 200) / 300.0) +
-                                  (totalHits > 500 ? (totalHits - 500) / 1200.0 : 0.0)
-                                : 0.0);
-            }
+            aimValue *= approachRateBonus;
 
-            // Scale the aim value with accuracy _slightly_
+            // Scale the aim value with accuracy _slightly_.
             aimValue *= 0.5 + accuracy / 2.0;
-            // It is important to also consider accuracy difficulty when doing that
+            // It is important to also consider accuracy difficulty when doing that.
             aimValue *= 0.98 + Math.Pow(Attributes.OverallDifficulty, 2) / 2500;
 
             return aimValue;
@@ -130,7 +126,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
         {
             double speedValue = Math.Pow(5.0 * Math.Max(1.0, Attributes.SpeedStrain / 0.0675) - 4.0, 3.0) / 100000.0;
 
-            // Longer maps are worth more
+            // Longer maps are worth more.
             double lengthBonus = 0.95 + 0.4 * Math.Min(1.0, totalHits / 2000.0) +
                                  (totalHits > 2000 ? Math.Log10(totalHits / 2000.0) * 0.5 : 0.0);
             speedValue *= lengthBonus;
@@ -139,20 +135,22 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             if (countMiss > 0)
                 speedValue *= 0.97 * Math.Pow(1 - Math.Pow((double)countMiss / totalHits, 0.775), Math.Pow(countMiss, .875));
 
-            // Combo scaling
+            // Combo scaling.
             if (Attributes.MaxCombo > 0)
                 speedValue *= Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(Attributes.MaxCombo, 0.8), 1.0);
 
             double approachRateFactor = 0.0;
             if (Attributes.ApproachRate > 10.33)
-                approachRateFactor += 0.4 * (Attributes.ApproachRate - 10.33);
+                approachRateFactor = Attributes.ApproachRate - 10.33;
 
-            speedValue *= 1.0 + Math.Min(approachRateFactor, approachRateFactor * (totalHits / 1000.0));
+            double approachRateTotalHitsFactor = 1.0 / (1.0 + Math.Exp(-(0.007 * (totalHits - 400))));
+
+            speedValue *= 1.0 + (0.03 + 0.37 * approachRateTotalHitsFactor) * approachRateFactor;
 
             if (mods.Any(m => m is OsuModHidden))
                 speedValue *= 1.0 + 0.04 * (12.0 - Attributes.ApproachRate);
 
-            // Scale the speed value with accuracy and OD
+            // Scale the speed value with accuracy and OD.
             speedValue *= (0.95 + Math.Pow(Attributes.OverallDifficulty, 2) / 750) * Math.Pow(accuracy, (14.5 - Math.Max(Attributes.OverallDifficulty, 8)) / 2);
             // Scale the speed value with # of 50s to punish doubletapping.
             speedValue *= Math.Pow(0.98, countMeh < totalHits / 500.0 ? 0 : countMeh - totalHits / 500.0);
@@ -162,7 +160,7 @@ namespace osu.Game.Rulesets.Osu.Difficulty
 
         private double computeAccuracyValue()
         {
-            // This percentage only considers HitCircles of any value - in this part of the calculation we focus on hitting the timing hit window
+            // This percentage only considers HitCircles of any value - in this part of the calculation we focus on hitting the timing hit window.
             double betterAccuracyPercentage;
             int amountHitObjectsWithAccuracy = Attributes.HitCircleCount;
 
@@ -171,15 +169,15 @@ namespace osu.Game.Rulesets.Osu.Difficulty
             else
                 betterAccuracyPercentage = 0;
 
-            // It is possible to reach a negative accuracy with this formula. Cap it at zero - zero points
+            // It is possible to reach a negative accuracy with this formula. Cap it at zero - zero points.
             if (betterAccuracyPercentage < 0)
                 betterAccuracyPercentage = 0;
 
             // Lots of arbitrary values from testing.
-            // Considering to use derivation from perfect accuracy in a probabilistic manner - assume normal distribution
+            // Considering to use derivation from perfect accuracy in a probabilistic manner - assume normal distribution.
             double accuracyValue = Math.Pow(1.52163, Attributes.OverallDifficulty) * Math.Pow(betterAccuracyPercentage, 24) * 2.83;
 
-            // Bonus for many hitcircles - it's harder to keep good accuracy up for longer
+            // Bonus for many hitcircles - it's harder to keep good accuracy up for longer.
             accuracyValue *= Math.Min(1.15, Math.Pow(amountHitObjectsWithAccuracy / 1000.0, 0.3));
 
             if (mods.Any(m => m is OsuModHidden))
@@ -188,6 +186,42 @@ namespace osu.Game.Rulesets.Osu.Difficulty
                 accuracyValue *= 1.02;
 
             return accuracyValue;
+        }
+
+        private double computeFlashlightValue()
+        {
+            if (!mods.Any(h => h is OsuModFlashlight))
+                return 0.0;
+
+            double rawFlashlight = Attributes.FlashlightRating;
+
+            if (mods.Any(m => m is OsuModTouchDevice))
+                rawFlashlight = Math.Pow(rawFlashlight, 0.8);
+
+            double flashlightValue = Math.Pow(rawFlashlight, 2.0) * 25.0;
+
+            // Add an additional bonus for HDFL.
+            if (mods.Any(h => h is OsuModHidden))
+                flashlightValue *= 1.3;
+
+            // Penalize misses by assessing # of misses relative to the total # of objects. Default a 3% reduction for any # of misses.
+            if (countMiss > 0)
+                flashlightValue *= 0.97 * Math.Pow(1 - Math.Pow((double)countMiss / totalHits, 0.775), Math.Pow(countMiss, .875));
+
+            // Combo scaling.
+            if (Attributes.MaxCombo > 0)
+                flashlightValue *= Math.Min(Math.Pow(scoreMaxCombo, 0.8) / Math.Pow(Attributes.MaxCombo, 0.8), 1.0);
+
+            // Account for shorter maps having a higher ratio of 0 combo/100 combo flashlight radius.
+            flashlightValue *= 0.7 + 0.1 * Math.Min(1.0, totalHits / 200.0) +
+                               (totalHits > 200 ? 0.2 * Math.Min(1.0, (totalHits - 200) / 200.0) : 0.0);
+
+            // Scale the flashlight value with accuracy _slightly_.
+            flashlightValue *= 0.5 + accuracy / 2.0;
+            // It is important to also consider accuracy difficulty when doing that.
+            flashlightValue *= 0.98 + Math.Pow(Attributes.OverallDifficulty, 2) / 2500;
+
+            return flashlightValue;
         }
 
         private int totalHits => countGreat + countOk + countMeh + countMiss;

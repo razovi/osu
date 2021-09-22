@@ -8,7 +8,7 @@ using osu.Framework.Testing;
 using osu.Framework.Threading;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Overlays;
-using osu.Game.Overlays.KeyBinding;
+using osu.Game.Overlays.Settings.Sections.Input;
 using osuTK.Input;
 
 namespace osu.Game.Tests.Visual.Settings
@@ -32,6 +32,7 @@ namespace osu.Game.Tests.Visual.Settings
         [SetUpSteps]
         public void SetUpSteps()
         {
+            AddUntilStep("wait for load", () => panel.ChildrenOfType<GlobalKeyBindingsSection>().Any());
             AddStep("Scroll to top", () => panel.ChildrenOfType<SettingsPanel.SettingsSectionsContainer>().First().ScrollToTop());
             AddWaitStep("wait for scroll", 5);
         }
@@ -160,7 +161,7 @@ namespace osu.Game.Tests.Visual.Settings
             {
                 var resetButton = settingsKeyBindingRow.ChildrenOfType<RestoreDefaultValueButton<bool>>().First();
 
-                resetButton.Click();
+                resetButton.TriggerClick();
             });
 
             AddUntilStep("restore button hidden", () => settingsKeyBindingRow.ChildrenOfType<RestoreDefaultValueButton<bool>>().First().Alpha == 0);
@@ -189,7 +190,7 @@ namespace osu.Game.Tests.Visual.Settings
             {
                 var resetButton = panel.ChildrenOfType<ResetButton>().First();
 
-                resetButton.Click();
+                resetButton.TriggerClick();
             });
 
             AddUntilStep("restore button hidden", () => settingsKeyBindingRow.ChildrenOfType<RestoreDefaultValueButton<bool>>().First().Alpha == 0);
@@ -233,7 +234,7 @@ namespace osu.Game.Tests.Visual.Settings
         {
             AddAssert($"Check {name} is bound to {keyName}", () =>
             {
-                var firstRow = panel.ChildrenOfType<KeyBindingRow>().First(r => r.ChildrenOfType<OsuSpriteText>().Any(s => s.Text == name));
+                var firstRow = panel.ChildrenOfType<KeyBindingRow>().First(r => r.ChildrenOfType<OsuSpriteText>().Any(s => s.Text.ToString() == name));
                 var firstButton = firstRow.ChildrenOfType<KeyBindingRow.KeyButton>().First();
 
                 return firstButton.Text.Text == keyName;
@@ -246,7 +247,7 @@ namespace osu.Game.Tests.Visual.Settings
 
             AddStep($"Scroll to {name}", () =>
             {
-                var firstRow = panel.ChildrenOfType<KeyBindingRow>().First(r => r.ChildrenOfType<OsuSpriteText>().Any(s => s.Text == name));
+                var firstRow = panel.ChildrenOfType<KeyBindingRow>().First(r => r.ChildrenOfType<OsuSpriteText>().Any(s => s.Text.ToString() == name));
                 firstButton = firstRow.ChildrenOfType<KeyBindingRow.KeyButton>().First();
 
                 panel.ChildrenOfType<SettingsPanel.SettingsSectionsContainer>().First().ScrollTo(firstButton);

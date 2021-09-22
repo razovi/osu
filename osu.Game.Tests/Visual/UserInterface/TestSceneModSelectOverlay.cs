@@ -94,10 +94,10 @@ namespace osu.Game.Tests.Visual.UserInterface
 
             AddAssert("selected mod matches", () => (SelectedMods.Value.Single() as OsuModDoubleTime)?.SpeedChange.Value == 1.2);
 
-            AddStep("deselect", () => modSelect.DeselectAllButton.Click());
+            AddStep("deselect", () => modSelect.DeselectAllButton.TriggerClick());
             AddAssert("selected mods empty", () => SelectedMods.Value.Count == 0);
 
-            AddStep("reselect", () => modSelect.GetModButton(osuModDoubleTime).Click());
+            AddStep("reselect", () => modSelect.GetModButton(osuModDoubleTime).TriggerClick());
             AddAssert("selected mod has default value", () => (SelectedMods.Value.Single() as OsuModDoubleTime)?.SpeedChange.IsDefault == true);
         }
 
@@ -158,8 +158,8 @@ namespace osu.Game.Tests.Visual.UserInterface
             var mania = new ManiaRuleset();
 
             testModsWithSameBaseType(
-                mania.GetAllMods().Single(m => m.GetType() == typeof(ManiaModFadeIn)),
-                mania.GetAllMods().Single(m => m.GetType() == typeof(ManiaModHidden)));
+                mania.CreateMod<ManiaModFadeIn>(),
+                mania.CreateMod<ManiaModHidden>());
         }
 
         [Test]
@@ -416,14 +416,13 @@ namespace osu.Game.Tests.Visual.UserInterface
                 {
                     Anchor = Anchor.TopRight,
                     Origin = Anchor.TopRight,
-                    AutoSizeAxes = Axes.Both,
                     Position = new Vector2(-5, 25),
                     Current = { BindTarget = modSelect.SelectedMods }
                 }
             };
         }
 
-        private class TestModSelectOverlay : LocalPlayerModSelectOverlay
+        private class TestModSelectOverlay : UserModSelectOverlay
         {
             public new Bindable<IReadOnlyList<Mod>> SelectedMods => base.SelectedMods;
 

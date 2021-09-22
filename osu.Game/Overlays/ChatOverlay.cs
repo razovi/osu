@@ -372,19 +372,19 @@ namespace osu.Game.Overlays
             return base.OnKeyDown(e);
         }
 
-        public bool OnPressed(PlatformAction action)
+        public bool OnPressed(KeyBindingPressEvent<PlatformAction> e)
         {
-            switch (action.ActionType)
+            switch (e.Action)
             {
-                case PlatformActionType.TabNew:
+                case PlatformAction.TabNew:
                     ChannelTabControl.SelectChannelSelectorTab();
                     return true;
 
-                case PlatformActionType.TabRestore:
+                case PlatformAction.TabRestore:
                     channelManager.JoinLastClosedChannel();
                     return true;
 
-                case PlatformActionType.DocumentClose:
+                case PlatformAction.DocumentClose:
                     channelManager.LeaveChannel(channelManager.CurrentChannel.Value);
                     return true;
             }
@@ -392,7 +392,7 @@ namespace osu.Game.Overlays
             return false;
         }
 
-        public void OnReleased(PlatformAction action)
+        public void OnReleased(KeyBindingReleaseEvent<PlatformAction> e)
         {
         }
 

@@ -61,24 +61,23 @@ namespace osu.Game.Overlays.Settings
         /// Text to be displayed at the bottom of this <see cref="SettingsItem{T}"/>.
         /// Generally used to recommend the user change their setting as the current one is considered sub-optimal.
         /// </summary>
-        public string WarningText
+        public LocalisableString? WarningText
         {
             set
             {
+                bool hasValue = !string.IsNullOrWhiteSpace(value.ToString());
+
                 if (warningText == null)
                 {
+                    if (!hasValue)
+                        return;
+
                     // construct lazily for cases where the label is not needed (may be provided by the Control).
-                    FlowContent.Add(warningText = new OsuTextFlowContainer
-                    {
-                        Colour = colours.Yellow,
-                        Margin = new MarginPadding { Bottom = 5 },
-                        RelativeSizeAxes = Axes.X,
-                        AutoSizeAxes = Axes.Y,
-                    });
+                    FlowContent.Add(warningText = new SettingsNoticeText(colours) { Margin = new MarginPadding { Bottom = 5 } });
                 }
 
-                warningText.Alpha = string.IsNullOrWhiteSpace(value) ? 0 : 1;
-                warningText.Text = value;
+                warningText.Alpha = hasValue ? 1 : 0;
+                warningText.Text = value.ToString(); // TODO: Remove ToString() call after TextFlowContainer supports localisation (see https://github.com/ppy/osu-framework/issues/4636).
             }
         }
 
@@ -94,14 +93,12 @@ namespace osu.Game.Overlays.Settings
 
         public bool MatchingFilter
         {
-            set => this.FadeTo(value ? 1 : 0);
+            set => Alpha = value ? 1 : 0;
         }
 
         public bool FilteringActive { get; set; }
 
         public event Action SettingChanged;
-
-        private readonly RestoreDefaultValueButton<T> restoreDefaultButton;
 
         protected SettingsItem()
         {
@@ -111,7 +108,6 @@ namespace osu.Game.Overlays.Settings
 
             InternalChildren = new Drawable[]
             {
-                restoreDefaultButton = new RestoreDefaultValueButton<T>(),
                 FlowContent = new FillFlowContainer
                 {
                     RelativeSizeAxes = Axes.X,
@@ -124,7 +120,7 @@ namespace osu.Game.Overlays.Settings
                 },
             };
 
-            // all bindable logic is in constructor intentionally to support "CreateSettingsControls" being used in a context it is
+            // IMPORTANT: all bindable logic is in constructor intentionally to support "CreateSettingsControls" being used in a context it is
             // never loaded, but requires bindable storage.
             if (controlWithCurrent == null)
                 throw new ArgumentException(@$"Control created via {nameof(CreateControl)} must implement {nameof(IHasCurrentValue<T>)}");
@@ -133,12 +129,17 @@ namespace osu.Game.Overlays.Settings
             controlWithCurrent.Current.DisabledChanged += _ => updateDisabled();
         }
 
-        protected override void LoadComplete()
+        [BackgroundDependencyLoader]
+        private void load()
         {
-            base.LoadComplete();
-
+            // intentionally done before LoadComplete to avoid overhead.
             if (ShowsDefaultIndicator)
-                restoreDefaultButton.Current = controlWithCurrent.Current;
+            {
+                AddInternal(new RestoreDefaultValueButton<T>
+                {
+                    Current = controlWithCurrent.Current,
+                });
+            }
         }
 
         private void updateDisabled()

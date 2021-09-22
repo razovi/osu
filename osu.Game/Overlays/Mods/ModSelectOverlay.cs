@@ -74,6 +74,7 @@ namespace osu.Game.Overlays.Mods
 
         protected readonly ModSettingsContainer ModSettingsContainer;
 
+        [Cached]
         public readonly Bindable<IReadOnlyList<Mod>> SelectedMods = new Bindable<IReadOnlyList<Mod>>(Array.Empty<Mod>());
 
         private Bindable<Dictionary<ModType, IReadOnlyList<Mod>>> availableMods;
@@ -404,18 +405,18 @@ namespace osu.Game.Overlays.Mods
             switch (e.Key)
             {
                 case Key.Number1:
-                    DeselectAllButton.Click();
+                    DeselectAllButton.TriggerClick();
                     return true;
 
                 case Key.Number2:
-                    CloseButton.Click();
+                    CloseButton.TriggerClick();
                     return true;
             }
 
             return base.OnKeyDown(e);
         }
 
-        public override bool OnPressed(GlobalAction action) => false; // handled by back button
+        public override bool OnPressed(KeyBindingPressEvent<GlobalAction> e) => false; // handled by back button
 
         private void updateAvailableMods()
         {
@@ -429,7 +430,7 @@ namespace osu.Game.Overlays.Mods
                 if (!Stacked)
                     modEnumeration = ModUtils.FlattenMods(modEnumeration);
 
-                section.Mods = modEnumeration.Select(getValidModOrNull).Where(m => m != null).Select(m => m.CreateCopy());
+                section.Mods = modEnumeration.Select(getValidModOrNull).Where(m => m != null).Select(m => m.DeepClone());
             }
 
             updateSelectedButtons();

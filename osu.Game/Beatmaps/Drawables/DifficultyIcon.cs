@@ -16,7 +16,6 @@ using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Sprites;
 using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
-using osu.Game.Graphics.Sprites;
 using osu.Game.Rulesets;
 using osu.Game.Rulesets.Mods;
 using osuTK;
@@ -24,7 +23,7 @@ using osuTK.Graphics;
 
 namespace osu.Game.Beatmaps.Drawables
 {
-    public class DifficultyIcon : CompositeDrawable, IHasCustomTooltip
+    public class DifficultyIcon : CompositeDrawable, IHasCustomTooltip<DifficultyIconTooltipContent>
     {
         private readonly Container iconContainer;
 
@@ -93,20 +92,20 @@ namespace osu.Game.Beatmaps.Drawables
                 new CircularContainer
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Scale = new Vector2(0.84f),
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
                     Masking = true,
                     EdgeEffect = new EdgeEffectParameters
                     {
-                        Colour = Color4.Black.Opacity(0.08f),
+                        Colour = Color4.Black.Opacity(0.06f),
+
                         Type = EdgeEffectType.Shadow,
-                        Radius = 5,
+                        Radius = 3,
                     },
                     Child = background = new Box
                     {
                         RelativeSizeAxes = Axes.Both,
-                        Colour = colours.ForDifficultyRating(beatmap.DifficultyRating) // Default value that will be re-populated once difficulty calculation completes
+                        Colour = colours.ForStarDifficulty(beatmap.StarDifficulty) // Default value that will be re-populated once difficulty calculation completes
                     },
                 },
                 new ConstrainedIconContainer
@@ -124,12 +123,12 @@ namespace osu.Game.Beatmaps.Drawables
             else
                 difficultyBindable.Value = new StarDifficulty(beatmap.StarDifficulty, 0);
 
-            difficultyBindable.BindValueChanged(difficulty => background.Colour = colours.ForDifficultyRating(difficulty.NewValue.DifficultyRating));
+            difficultyBindable.BindValueChanged(difficulty => background.Colour = colours.ForStarDifficulty(difficulty.NewValue.Stars));
         }
 
-        public ITooltip GetCustomTooltip() => new DifficultyIconTooltip();
+        ITooltip<DifficultyIconTooltipContent> IHasCustomTooltip<DifficultyIconTooltipContent>.GetCustomTooltip() => new DifficultyIconTooltip();
 
-        public object TooltipContent => shouldShowTooltip ? new DifficultyIconTooltipContent(beatmap, difficultyBindable) : null;
+        DifficultyIconTooltipContent IHasCustomTooltip<DifficultyIconTooltipContent>.TooltipContent => shouldShowTooltip ? new DifficultyIconTooltipContent(beatmap, difficultyBindable) : null;
 
         private class DifficultyRetriever : Component
         {
@@ -172,116 +171,6 @@ namespace osu.Game.Beatmaps.Drawables
                 base.Dispose(isDisposing);
                 difficultyCancellation?.Cancel();
             }
-        }
-
-        private class DifficultyIconTooltipContent
-        {
-            public readonly BeatmapInfo Beatmap;
-            public readonly IBindable<StarDifficulty> Difficulty;
-
-            public DifficultyIconTooltipContent(BeatmapInfo beatmap, IBindable<StarDifficulty> difficulty)
-            {
-                Beatmap = beatmap;
-                Difficulty = difficulty;
-            }
-        }
-
-        private class DifficultyIconTooltip : VisibilityContainer, ITooltip
-        {
-            private readonly OsuSpriteText difficultyName, starRating;
-            private readonly Box background;
-            private readonly FillFlowContainer difficultyFlow;
-
-            public DifficultyIconTooltip()
-            {
-                AutoSizeAxes = Axes.Both;
-                Masking = true;
-                CornerRadius = 5;
-
-                Children = new Drawable[]
-                {
-                    background = new Box
-                    {
-                        RelativeSizeAxes = Axes.Both
-                    },
-                    new FillFlowContainer
-                    {
-                        AutoSizeAxes = Axes.Both,
-                        AutoSizeDuration = 200,
-                        AutoSizeEasing = Easing.OutQuint,
-                        Direction = FillDirection.Vertical,
-                        Padding = new MarginPadding(10),
-                        Children = new Drawable[]
-                        {
-                            difficultyName = new OsuSpriteText
-                            {
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                Font = OsuFont.GetFont(size: 16, weight: FontWeight.Bold),
-                            },
-                            difficultyFlow = new FillFlowContainer
-                            {
-                                AutoSizeAxes = Axes.Both,
-                                Anchor = Anchor.Centre,
-                                Origin = Anchor.Centre,
-                                Direction = FillDirection.Horizontal,
-                                Children = new Drawable[]
-                                {
-                                    starRating = new OsuSpriteText
-                                    {
-                                        Anchor = Anchor.Centre,
-                                        Origin = Anchor.Centre,
-                                        Font = OsuFont.GetFont(size: 16, weight: FontWeight.Regular),
-                                    },
-                                    new SpriteIcon
-                                    {
-                                        Anchor = Anchor.Centre,
-                                        Origin = Anchor.Centre,
-                                        Margin = new MarginPadding { Left = 4 },
-                                        Icon = FontAwesome.Solid.Star,
-                                        Size = new Vector2(12),
-                                    },
-                                }
-                            }
-                        }
-                    }
-                };
-            }
-
-            [Resolved]
-            private OsuColour colours { get; set; }
-
-            [BackgroundDependencyLoader]
-            private void load()
-            {
-                background.Colour = colours.Gray3;
-            }
-
-            private readonly IBindable<StarDifficulty> starDifficulty = new Bindable<StarDifficulty>();
-
-            public bool SetContent(object content)
-            {
-                if (!(content is DifficultyIconTooltipContent iconContent))
-                    return false;
-
-                difficultyName.Text = iconContent.Beatmap.Version;
-
-                starDifficulty.UnbindAll();
-                starDifficulty.BindTo(iconContent.Difficulty);
-                starDifficulty.BindValueChanged(difficulty =>
-                {
-                    starRating.Text = $"{difficulty.NewValue.Stars:0.##}";
-                    difficultyFlow.Colour = colours.ForDifficultyRating(difficulty.NewValue.DifficultyRating, true);
-                }, true);
-
-                return true;
-            }
-
-            public void Move(Vector2 pos) => Position = pos;
-
-            protected override void PopIn() => this.FadeIn(200, Easing.OutQuint);
-
-            protected override void PopOut() => this.FadeOut(200, Easing.OutQuint);
         }
     }
 }

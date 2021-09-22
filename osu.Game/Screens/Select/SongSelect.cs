@@ -53,6 +53,8 @@ namespace osu.Game.Screens.Select
 
         protected virtual bool DisplayStableImportPrompt => stableImportManager?.SupportsImportFromStable == true;
 
+        public override bool? AllowTrackAdjustments => true;
+
         /// <summary>
         /// Can be null if <see cref="ShowFooter"/> is false.
         /// </summary>
@@ -78,6 +80,8 @@ namespace osu.Game.Screens.Select
         private Bindable<IReadOnlyList<Mod>> selectedMods { get; set; }
 
         protected BeatmapCarousel Carousel { get; private set; }
+
+        protected Container LeftArea { get; private set; }
 
         private BeatmapInfoWedge beatmapInfoWedge;
         private DialogOverlay dialogOverlay;
@@ -186,12 +190,12 @@ namespace osu.Game.Screens.Select
                             {
                                 new Drawable[]
                                 {
-                                    new Container
+                                    LeftArea = new Container
                                     {
                                         Origin = Anchor.BottomLeft,
                                         Anchor = Anchor.BottomLeft,
                                         RelativeSizeAxes = Axes.Both,
-
+                                        Padding = new MarginPadding { Top = left_area_padding },
                                         Children = new Drawable[]
                                         {
                                             beatmapInfoWedge = new BeatmapInfoWedge
@@ -200,8 +204,8 @@ namespace osu.Game.Screens.Select
                                                 RelativeSizeAxes = Axes.X,
                                                 Margin = new MarginPadding
                                                 {
-                                                    Top = left_area_padding,
                                                     Right = left_area_padding,
+                                                    Left = -BeatmapInfoWedge.BORDER_THICKNESS, // Hide the left border
                                                 },
                                             },
                                             new Container
@@ -210,7 +214,7 @@ namespace osu.Game.Screens.Select
                                                 Padding = new MarginPadding
                                                 {
                                                     Bottom = Footer.HEIGHT,
-                                                    Top = WEDGE_HEIGHT + left_area_padding,
+                                                    Top = WEDGE_HEIGHT,
                                                     Left = left_area_padding,
                                                     Right = left_area_padding * 2,
                                                 },
@@ -313,7 +317,7 @@ namespace osu.Game.Screens.Select
             (new FooterButtonOptions(), BeatmapOptions)
         };
 
-        protected virtual ModSelectOverlay CreateModSelectOverlay() => new LocalPlayerModSelectOverlay();
+        protected virtual ModSelectOverlay CreateModSelectOverlay() => new UserModSelectOverlay();
 
         protected virtual void ApplyFilterToCarousel(FilterCriteria criteria)
         {
@@ -347,7 +351,7 @@ namespace osu.Game.Screens.Select
                 throw new InvalidOperationException($"Attempted to edit when {nameof(AllowEditing)} is disabled");
 
             Beatmap.Value = beatmaps.GetWorkingBeatmap(beatmap ?? beatmapNoDebounce);
-            this.Push(new Editor());
+            this.Push(new EditorLoader());
         }
 
         /// <summary>
@@ -808,11 +812,11 @@ namespace osu.Game.Screens.Select
                 Schedule(() => BeatmapDetails.Refresh())));
         }
 
-        public virtual bool OnPressed(GlobalAction action)
+        public virtual bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
             if (!this.IsCurrentScreen()) return false;
 
-            switch (action)
+            switch (e.Action)
             {
                 case GlobalAction.Select:
                     FinaliseSelection();
@@ -822,7 +826,7 @@ namespace osu.Game.Screens.Select
             return false;
         }
 
-        public void OnReleased(GlobalAction action)
+        public void OnReleased(KeyBindingReleaseEvent<GlobalAction> e)
         {
         }
 

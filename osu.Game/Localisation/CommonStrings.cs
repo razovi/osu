@@ -14,6 +14,41 @@ namespace osu.Game.Localisation
         /// </summary>
         public static LocalisableString Cancel => new TranslatableString(getKey(@"cancel"), @"Cancel");
 
-        private static string getKey(string key) => $"{prefix}:{key}";
+        /// <summary>
+        /// "Clear"
+        /// </summary>
+        public static LocalisableString Clear => new TranslatableString(getKey(@"clear"), @"Clear");
+
+        /// <summary>
+        /// "Enabled"
+        /// </summary>
+        public static LocalisableString Enabled => new TranslatableString(getKey(@"enabled"), @"Enabled");
+
+        /// <summary>
+        /// "Default"
+        /// </summary>
+        public static LocalisableString Default => new TranslatableString(getKey(@"default"), @"Default");
+
+        /// <summary>
+        /// "Width"
+        /// </summary>
+        public static LocalisableString Width => new TranslatableString(getKey(@"width"), @"Width");
+
+        /// <summary>
+        /// "Height"
+        /// </summary>
+        public static LocalisableString Height => new TranslatableString(getKey(@"height"), @"Height");
+
+        /// <summary>
+        /// "Downloading..."
+        /// </summary>
+        public static LocalisableString Downloading => new TranslatableString(getKey(@"downloading"), @"Downloading...");
+
+        /// <summary>
+        /// "Importing..."
+        /// </summary>
+        public static LocalisableString Importing => new TranslatableString(getKey(@"importing"), @"Importing...");
+
+        private static string getKey(string key) => $@"{prefix}:{key}";
     }
 }
