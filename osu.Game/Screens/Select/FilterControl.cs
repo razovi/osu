@@ -1,8 +1,9 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
-using System.Diagnostics;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -15,6 +16,7 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Resources.Localisation.Web;
 using osu.Game.Rulesets;
 using osu.Game.Screens.Select.Filter;
 using osuTK;
@@ -37,9 +39,7 @@ namespace osu.Game.Screens.Select
 
         public FilterCriteria CreateCriteria()
         {
-            Debug.Assert(ruleset.Value.ID != null);
-
-            var query = searchTextBox.Text;
+            string query = searchTextBox.Text;
 
             var criteria = new FilterCriteria
             {
@@ -142,7 +142,7 @@ namespace osu.Game.Screens.Select
                                             },
                                             new OsuSpriteText
                                             {
-                                                Text = "Sort by",
+                                                Text = SortStrings.Default,
                                                 Font = OsuFont.GetFont(size: 14),
                                                 Margin = new MarginPadding(5),
                                                 Anchor = Anchor.BottomRight,
@@ -155,15 +155,23 @@ namespace osu.Game.Screens.Select
                             new Container
                             {
                                 RelativeSizeAxes = Axes.X,
-                                Height = 20,
+                                Height = 40,
                                 Children = new Drawable[]
                                 {
+                                    new DifficultyRangeFilterControl
+                                    {
+                                        Anchor = Anchor.TopLeft,
+                                        Origin = Anchor.TopLeft,
+                                        RelativeSizeAxes = Axes.Both,
+                                        Width = 0.48f,
+                                    },
                                     collectionDropdown = new CollectionFilterDropdown
                                     {
                                         Anchor = Anchor.TopRight,
                                         Origin = Anchor.TopRight,
                                         RelativeSizeAxes = Axes.X,
-                                        Width = 0.4f,
+                                        Y = 4,
+                                        Width = 0.5f,
                                     }
                                 }
                             },

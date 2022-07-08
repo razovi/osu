@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using System;
 using System.Linq;
 using osu.Framework.Bindables;
@@ -59,7 +61,7 @@ namespace osu.Game.Rulesets.Osu.Objects
             set => StackHeightBindable.Value = value;
         }
 
-        public Vector2 StackOffset => new Vector2(StackHeight * Scale * -6.4f);
+        public virtual Vector2 StackOffset => new Vector2(StackHeight * Scale * -6.4f);
 
         public double Radius => OBJECT_RADIUS * Scale;
 
@@ -122,11 +124,11 @@ namespace osu.Game.Rulesets.Osu.Objects
             });
         }
 
-        protected override void ApplyDefaultsToSelf(ControlPointInfo controlPointInfo, BeatmapDifficulty difficulty)
+        protected override void ApplyDefaultsToSelf(ControlPointInfo controlPointInfo, IBeatmapDifficultyInfo difficulty)
         {
             base.ApplyDefaultsToSelf(controlPointInfo, difficulty);
 
-            TimePreempt = (float)BeatmapDifficulty.DifficultyRange(difficulty.ApproachRate, 1800, 1200, PREEMPT_MIN);
+            TimePreempt = (float)IBeatmapDifficultyInfo.DifficultyRange(difficulty.ApproachRate, 1800, 1200, PREEMPT_MIN);
 
             // Preempt time can go below 450ms. Normally, this is achieved via the DT mod which uniformly speeds up all animations game wide regardless of AR.
             // This uniform speedup is hard to match 1:1, however we can at least make AR>10 (via mods) feel good by extending the upper linear function above.

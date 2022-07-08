@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+#nullable disable
+
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
@@ -143,19 +145,27 @@ namespace osu.Game.Overlays
             switch (request)
             {
                 case GetUserRankingsRequest userRequest:
+                    if (userRequest.Response == null)
+                        return null;
+
                     switch (userRequest.Type)
                     {
                         case UserRankingsType.Performance:
-                            return new PerformanceTable(1, userRequest.Result.Users);
+                            return new PerformanceTable(1, userRequest.Response.Users);
 
                         case UserRankingsType.Score:
-                            return new ScoresTable(1, userRequest.Result.Users);
+                            return new ScoresTable(1, userRequest.Response.Users);
                     }
 
                     return null;
 
                 case GetCountryRankingsRequest countryRequest:
-                    return new CountriesTable(1, countryRequest.Result.Countries);
+                {
+                    if (countryRequest.Response == null)
+                        return null;
+
+                    return new CountriesTable(1, countryRequest.Response.Countries);
+                }
             }
 
             return null;
