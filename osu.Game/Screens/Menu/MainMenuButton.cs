@@ -21,6 +21,7 @@ using osu.Game.Graphics.Containers;
 using osu.Framework.Graphics.Effects;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Events;
+using osu.Framework.Input.States;
 using osu.Framework.Localisation;
 using osu.Game.Beatmaps.ControlPoints;
 
@@ -156,6 +157,15 @@ namespace osu.Game.Screens.Menu
             rightward = !rightward;
         }
 
+        public bool OnNavigation()
+        {
+            return this.OnHover(new HoverEvent(new InputState()));
+        }
+
+        public void OnNavigationLost()
+        {
+            this.OnHoverLost(new HoverLostEvent(new InputState()));
+        }
         protected override bool OnHover(HoverEvent e)
         {
             if (State != ButtonState.Expanded) return true;

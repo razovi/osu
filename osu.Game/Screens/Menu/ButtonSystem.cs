@@ -89,6 +89,8 @@ namespace osu.Game.Screens.Menu
 
         private readonly LogoTrackingContainer logoTrackingContainer;
 
+        public int navigationPos = 0;
+
         public bool ReturnToTopOnIdle { get; set; } = true;
 
         public ButtonSystem()
@@ -233,6 +235,60 @@ namespace osu.Game.Screens.Menu
             return base.OnMidiDown(e);
         }
 
+        private void ButtonListNavigation(int position, NavigationFunction activate)
+        {
+            int rpos, size;
+            switch (State)
+            {
+                case ButtonSystemState.TopLevel:
+                    size = buttonsTopLevel.Count;
+                    rpos = position % (size + 1);
+                    if (rpos != 0)
+                    {
+                        switch (activate)
+                        {
+                            case NavigationFunction.Activate:
+                                buttonsTopLevel[rpos - 1].OnNavigation();
+                                break;
+
+                            case NavigationFunction.Deactivate:
+                                buttonsTopLevel[rpos - 1].OnNavigationLost();
+                                break;
+                            case NavigationFunction.Trigger:
+                                buttonsTopLevel[rpos - 1].TriggerClick();
+                                break;
+                        }
+                    }
+
+                    break;
+
+                case ButtonSystemState.Play:
+                    size = buttonsPlay.Count;
+                    rpos = position % (size + 1);
+                    if (rpos != 0)
+                    {
+                        switch (activate)
+                        {
+                            case NavigationFunction.Activate:
+                                buttonsPlay[rpos - 1].OnNavigation();
+                                break;
+
+                            case NavigationFunction.Deactivate:
+                                buttonsPlay[rpos - 1].OnNavigationLost();
+                                break;
+                            case NavigationFunction.Trigger:
+                                buttonsPlay[rpos - 1].TriggerClick();
+                                break;
+                        }
+                    }
+
+                    break;
+
+                default:
+                    logo?.TriggerClick();
+                    break;
+            }
+        }
         public bool OnPressed(KeyBindingPressEvent<GlobalAction> e)
         {
             if (e.Repeat)
@@ -241,10 +297,24 @@ namespace osu.Game.Screens.Menu
             switch (e.Action)
             {
                 case GlobalAction.Back:
+                    navigationPos = 0;
                     return goBack();
 
                 case GlobalAction.Select:
-                    logo?.TriggerClick();
+                    ButtonListNavigation(navigationPos, NavigationFunction.Trigger);
+                    return true;
+
+                case GlobalAction.SelectPrevious:
+                case GlobalAction.SelectPreviousGroup:
+                    ButtonListNavigation(navigationPos, NavigationFunction.Deactivate);
+                    navigationPos--;
+                    ButtonListNavigation(navigationPos, NavigationFunction.Activate);
+                    return true;
+                case GlobalAction.SelectNext:
+                case GlobalAction.SelectNextGroup:
+                    ButtonListNavigation(navigationPos, NavigationFunction.Deactivate);
+                    navigationPos++;
+                    ButtonListNavigation(navigationPos, NavigationFunction.Activate);
                     return true;
 
                 default:
@@ -399,5 +469,12 @@ namespace osu.Game.Screens.Menu
         TopLevel,
         Play,
         EnteringMode,
+    }
+
+    public enum NavigationFunction
+    {
+        Activate,
+        Deactivate,
+        Trigger,
     }
 }
